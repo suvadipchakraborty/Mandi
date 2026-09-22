@@ -74,7 +74,8 @@ const T = {
     trendCaptionYear: "vs. this day last year",
     trendYearAgo: "Last year", trendToday: "Today",
     noTrendData: "Not enough history for this range yet.",
-    tapForTrend: "Tap for price trend"
+    tapForTrend: "Tap for price trend",
+    wholesaleNote: "📦 These are wholesale mandi prices, not retail. Local shops and street vendors mark up over this for transport, storage, and their own margin."
   },
   hi: {
     tagline: "बाज़ार जाने से पहले आज के मंडी भाव",
@@ -125,7 +126,8 @@ const T = {
     trendCaptionYear: "पिछले साल इसी दिन की तुलना में",
     trendYearAgo: "पिछला साल", trendToday: "आज",
     noTrendData: "इस अवधि के लिए पर्याप्त इतिहास उपलब्ध नहीं है।",
-    tapForTrend: "मूल्य रुझान के लिए टैप करें"
+    tapForTrend: "मूल्य रुझान के लिए टैप करें",
+    wholesaleNote: "📦 ये मंडी की थोक कीमतें हैं, खुदरा नहीं। दुकानदार परिवहन, भंडारण और अपने मुनाफ़े के लिए इससे ज़्यादा दाम लेते हैं।"
   }
 };
 function t(key) { return (T[state.lang] && T[state.lang][key]) || T.en[key] || key; }
