@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mandi Nibs — Daily Produce Price Index</title>
+<meta name="description" content="Today's mandi vegetable and fruit prices across Indian cities. Spot the best deals, avoid overpriced buys, and build your shopping list before you leave home.">
+
+<!-- Open Graph / WhatsApp link preview -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mandi Nibs — Daily Produce Price Index">
+<meta property="og:description" content="Today's mandi vegetable and fruit prices across Indian cities, with best-deal picks and a smart shopping list.">
+<meta property="og:image" content="https://mandi-nibs.pages.dev/assets/og-image.png">
+<meta property="og:url" content="https://mandi-nibs.pages.dev/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mandi Nibs — Daily Produce Price Index">
+<meta name="twitter:description" content="Today's mandi vegetable and fruit prices, best deals, and a smart shopping list.">
+<meta name="twitter:image" content="https://mandi-nibs.pages.dev/assets/og-image.png">
+<!--
+  NOTE: replace mandi-nibs.pages.dev above with your actual Cloudflare
+  Pages domain (or custom domain) once deployed, so WhatsApp/Twitter/etc.
+  pull the right preview image. See README.md → "Link preview" section.
+-->
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧺</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-row">
+    <div class="brand"><span data-t="brandName">Mandi Nibs</span><span class="brand-dot">•</span></div>
+    <div class="header-controls">
+      <button class="icon-btn" id="langToggle" title="Language">हिं</button>
+      <button class="icon-btn" id="themeToggle" title="Theme">🌙</button>
+    </div>
+  </div>
+  <div class="selector-row">
+    <select class="pill-select" id="citySelect"></select>
+    <div id="categoryChips" style="display:flex;gap:8px"></div>
+  </div>
+</header>
+
+<div id="staleBanner" class="stale-banner hidden" style="max-width:640px;margin:8px auto 0;display:none"></div>
+
+<main class="container">
+
+  <!-- ===================== HOME VIEW ===================== -->
+  <section id="view-home" class="view active">
+    <div id="heroCard" class="hero"></div>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title" data-t="topGainers">Top Gainers</span>
+        <div class="horizon-tabs" id="glHorizonTabs">
+          <button class="horizon-tab active" data-h="vsWeek">7-day</button>
+          <button class="horizon-tab" data-h="vsMonthSameDay">Last month</button>
+          <button class="horizon-tab" data-h="vsYear">Last year</button>
+        </div>
+      </div>
+      <div class="card-scroller" id="gainersScroller"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title" data-t="bestDeals">Best Deals</span>
+      </div>
+      <div class="card-scroller" id="losersScroller"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title" data-t="allProduce">All Produce</span>
+      </div>
+      <div class="produce-list" id="produceList"></div>
+    </div>
+
+    <a class="feedback-link" data-t="feedback"
+       href="mailto:?subject=%5BMandiIndex%20Feedback%5D&body=Page%3A%20Mandi%20Nibs%0ABrowser%3A%20"
+       id="feedbackLink">Feedback / Report a Mandi Price</a>
+
+    <footer class="brand-footer">Built by <strong>Suva</strong></footer>
+  </section>
+
+  <!-- ===================== COMPARE VIEW ===================== -->
+  <section id="view-compare" class="view">
+    <h2 class="section-title" style="margin:16px 0 12px" data-t="compare">Compare</h2>
+    <div id="compareBody"></div>
+  </section>
+
+  <!-- ===================== THALI VIEW ===================== -->
+  <section id="view-thali" class="view">
+    <h2 class="section-title" style="margin:16px 0 12px" data-t="thali">Thali Cost</h2>
+    <div id="thaliBody"></div>
+  </section>
+
+  <!-- ===================== DOCS VIEW ===================== -->
+  <section id="view-docs" class="view">
+    <h2 class="section-title" style="margin:16px 0 12px" data-t="docs">Guide</h2>
+
+    <div class="doc-block">
+      <h3>What is the Composite Index?</h3>
+      <p>It's a single number that tells you, at a glance, whether produce is generally more expensive or cheaper right now than it was over the past week. 100 means "about the same as last week's average." Above 100 means prices have risen overall; below 100 means they've eased.</p>
+    </div>
+
+    <div class="doc-block">
+      <h3>What do the badges mean?</h3>
+      <ul>
+        <li><strong>Value Buy</strong> — this item is noticeably cheaper than its 7-day average. Good time to stock up.</li>
+        <li><strong>Normal</strong> — price is close to its usual range.</li>
+        <li><strong>Pricey</strong> — this item costs more than usual right now. You might wait a few days if you can.</li>
+      </ul>
+    </div>
+
+    <div class="doc-block">
+      <h3>Top Gainers &amp; Best Deals</h3>
+      <p>Gainers are items whose prices climbed the most; Best Deals are items whose prices dropped the most. Use the 7-day / last month / last year tabs to change what the comparison is measured against.</p>
+    </div>
+
+    <div class="doc-block">
+      <h3>Compare tab</h3>
+      <p>Pick any item to see how its price varies by state, district, city, and individual mandi on the same day — useful for spotting whether your local mandi is charging more than nearby markets.</p>
+    </div>
+
+    <div class="doc-block">
+      <h3>Thali Cost Index</h3>
+      <p>An estimate of what it costs today to put together one standard home-style meal (roti or rice, a vegetable, and dal), using the same modal mandi prices shown elsewhere in the app.</p>
+    </div>
+
+    <div class="doc-block">
+      <h3>Shopping List</h3>
+      <p>Tap "+" on any item to add it to your basket. Adjust quantity in the basket drawer, tick items off while you shop, and share the list on WhatsApp or copy it as plain text before you leave.</p>
+    </div>
+
+    <div class="doc-block">
+      <h3>Where does the data come from?</h3>
+      <p>Prices are sourced from Agmarknet (Government of India) via data.gov.in, refreshed daily between 7–8 AM IST. If the day's data isn't published yet, the app shows the most recent day available.</p>
+    </div>
+
+    <footer class="brand-footer">Built by <strong>Suva</strong></footer>
+  </section>
+
+</main>
+
+<button class="basket-fab" id="basketFab" style="display:none">
+  🧺 <span data-t="basket">Basket</span> <span class="count">0</span>
+</button>
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="home"><span class="ticon">🏠</span><span data-t="home">Home</span></button>
+  <button class="tab-btn" data-tab="compare"><span class="ticon">📍</span><span data-t="compare">Compare</span></button>
+  <button class="tab-btn" data-tab="thali"><span class="ticon">🍽️</span><span data-t="thali">Thali Cost</span></button>
+  <button class="tab-btn" data-tab="docs"><span class="ticon">📘</span><span data-t="docs">Guide</span></button>
+</div>
+
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="drawer" id="basketDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-head">
+    <span class="section-title" data-t="yourBasket">Your Basket</span>
+    <button class="icon-btn" id="drawerCloseBtn">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-footer">
+    <div id="drawerSummary"></div>
+    <div class="export-row">
+      <button class="export-btn whatsapp" id="shareWhatsAppBtn" data-t="shareWhatsApp">Share on WhatsApp</button>
+      <button class="export-btn" id="copyListBtn" data-t="copyList">Copy as text</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/shoppingList.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
