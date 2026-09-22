@@ -24,6 +24,14 @@
 <meta name="theme-color" content="#C98A0A" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#14140F" media="(prefers-color-scheme: dark)">
 
+<!-- PWA: installable "Add to Home Screen" app shell -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mandi Nibs">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -38,6 +46,7 @@
   <div class="app-header-row">
     <div class="brand"><span class="brand-icon">🧺</span><span class="brand-name">Mandi Nibs</span><span class="brand-dot">•</span></div>
     <div class="header-controls">
+      <button class="icon-btn" id="installBtn" title="Install app" style="display:none">📲</button>
       <button class="icon-btn" id="langToggle" title="Language">हिं</button>
       <button class="icon-btn" id="themeToggle" title="Theme">🌙</button>
     </div>
@@ -148,6 +157,16 @@
     </div>
 
     <div class="doc-block">
+      <h3>Price trend charts</h3>
+      <p>Tap any produce card or row to open its price trend: a 7-day daily chart, a 12-month same-day-of-month chart, and a past-year same-day comparison — using exactly the history the feed keeps.</p>
+    </div>
+
+    <div class="doc-block">
+      <h3>Install as an app</h3>
+      <p>On Android/Chrome, tap the 📲 icon in the header (or your browser's "Add to Home Screen" option) to install Mandi Nibs like a native app — handy for spotty signal at the mandi. On iPhone, use Safari's Share → Add to Home Screen.</p>
+    </div>
+
+    <div class="doc-block">
       <h3>Shopping List</h3>
       <p>Tap "+" on any item to add it to your basket. Adjust quantity in the basket drawer, tick items off while you shop, and share the list on WhatsApp or copy it as plain text before you leave.</p>
     </div>
@@ -187,6 +206,24 @@
       <button class="export-btn whatsapp" id="shareWhatsAppBtn" data-t="shareWhatsApp">Share on WhatsApp</button>
       <button class="export-btn" id="copyListBtn" data-t="copyList">Copy as text</button>
     </div>
+  </div>
+</div>
+
+<div class="drawer-backdrop" id="trendBackdrop"></div>
+<div class="drawer" id="trendDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-head">
+    <span class="section-title" id="trendTitle">—</span>
+    <button class="icon-btn" id="trendCloseBtn">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="horizon-tabs" id="trendTabs">
+      <button class="horizon-tab active" data-range="week" data-t="trend7Day">7-Day</button>
+      <button class="horizon-tab" data-range="months" data-t="trend12Month">12-Month</button>
+      <button class="horizon-tab" data-range="year" data-t="trendPastYear">Past Year</button>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChart"></canvas></div>
+    <div id="trendCaption" class="trend-caption"></div>
   </div>
 </div>
 </div><!-- /.app-shell -->
