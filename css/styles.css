@@ -101,10 +101,17 @@ a { color: inherit; }
   font-size: 22px;
   font-weight: 700;
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  align-items: center;
+  gap: 7px;
 }
-.brand-dot { color: var(--turmeric); }
+.brand-icon { font-size: 20px; }
+.brand-name {
+  background: linear-gradient(100deg, var(--turmeric-deep), var(--turmeric) 60%, var(--leaf) 130%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand-dot { color: var(--turmeric); align-self: baseline; }
 .header-controls {
   display: flex;
   gap: 8px;
@@ -124,6 +131,11 @@ a { color: inherit; }
   font-size: 16px;
 }
 .icon-btn:active { transform: scale(0.94); }
+@media (hover: hover) {
+  .icon-btn:hover, .chip:hover, .tab-btn:hover, .row-add-btn:hover { border-color: var(--turmeric); }
+  .add-fab:hover { background: var(--ink); color: var(--paper); }
+  .basket-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,0.3); }
+}
 
 /* ---------------- Selectors row ---------------- */
 .selector-row {
@@ -166,14 +178,56 @@ select.pill-select {
   border-color: var(--ink);
 }
 
+/* ---------------- Value proposition intro ---------------- */
+.value-intro {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(120deg, var(--leaf-bg), var(--paper-raised) 65%);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  font-weight: 500;
+}
+
 /* ---------------- Hero index card ---------------- */
 .hero {
   margin: 14px 0 8px;
   padding: 22px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(155deg, var(--paper-raised) 0%, var(--paper-raised) 60%, var(--leaf-bg) 160%);
+  background: linear-gradient(155deg, var(--paper-raised) 0%, var(--paper-raised) 55%, var(--leaf-bg) 170%);
   border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(28,33,24,0.03), 0 16px 32px -20px rgba(28,33,24,0.35);
+  position: relative;
+  overflow: hidden;
 }
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, var(--turmeric) 0%, transparent 70%);
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+/* ---------------- Quick-add essentials ---------------- */
+.essentials-btn {
+  display: block;
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--turmeric);
+  background: transparent;
+  color: var(--turmeric-deep);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.essentials-btn:active { background: var(--leaf-bg); }
 .hero-label {
   font-size: 12.5px;
   color: var(--muted);
@@ -236,6 +290,32 @@ select.pill-select {
   font-weight: 700;
   font-family: var(--font-display);
 }
+.sort-select {
+  font-size: 12px;
+  padding: 6px 26px 6px 12px;
+  max-width: 52%;
+}
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  border-radius: 999px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
+}
+.search-icon { font-size: 13px; opacity: 0.7; }
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+.search-input::placeholder { color: var(--muted); }
 .horizon-tabs {
   display: flex;
   gap: 4px;
@@ -275,6 +355,11 @@ select.pill-select {
   border: 1px solid var(--line);
   background: var(--paper-raised);
   padding: 14px;
+  box-shadow: 0 1px 2px rgba(28,33,24,0.03), 0 10px 20px -16px rgba(28,33,24,0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+@media (hover: hover) {
+  .produce-card:hover, .produce-row:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -8px rgba(28,33,24,0.25); }
 }
 .produce-card .pname {
   font-weight: 600;
@@ -322,10 +407,15 @@ select.pill-select {
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--paper-raised);
+  box-shadow: 0 1px 2px rgba(28,33,24,0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .produce-row .rinfo { flex: 1; min-width: 0; }
 .produce-row .rname { font-weight: 600; font-size: 14.5px; }
 .produce-row .rhindi { font-size: 12px; color: var(--muted); }
+.rhorizons { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: 0.01em; }
+.rhorizons b.up { color: var(--sindoor); font-weight: 700; }
+.rhorizons b.down { color: var(--leaf); font-weight: 700; }
 .produce-row .rprice {
   font-family: var(--font-display);
   font-size: 17px;
@@ -608,4 +698,58 @@ footer.brand-footer strong { color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .drawer, .skeleton { transition: none; animation: none; }
+}
+
+/* ---------------- Desktop / large-screen frame ----------------
+   This is a mobile-first app. Rather than let it stretch full-width
+   and look broken on a laptop, we present it inside a centered
+   "device" frame above a certain viewport width, and keep every
+   fixed-position element (header, tab bar, basket FAB, drawer)
+   contained to that frame instead of the whole browser window. */
+.app-shell { display: flex; flex-direction: column; min-height: 100vh; position: relative; }
+
+@media (min-width: 760px) {
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(201,138,10,0.16), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(47,122,77,0.16), transparent 45%),
+      var(--ink);
+  }
+  [data-theme="dark"] body {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(227,160,8,0.14), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(76,168,117,0.14), transparent 45%),
+      #0A0A08;
+  }
+  .app-shell {
+    width: 440px;
+    max-width: 100%;
+    height: min(900px, 94vh);
+    min-height: unset;
+    border-radius: 34px;
+    overflow: hidden;
+    background: var(--paper);
+    box-shadow: 0 50px 120px -30px rgba(0,0,0,0.6), 0 0 0 8px rgba(0,0,0,0.15), 0 0 0 9px var(--line);
+  }
+  .app-shell .app-header { flex: none; }
+  .app-shell main.container {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .app-shell .tab-bar,
+  .app-shell .basket-fab,
+  .app-shell .drawer,
+  .app-shell .drawer-backdrop {
+    position: absolute;
+  }
+  .app-shell .tab-bar { left: 0; right: 0; bottom: 0; }
+  .app-shell .basket-fab { right: 16px; bottom: 78px; }
+  .app-shell .drawer-backdrop { inset: 0; border-radius: 34px; }
+  .app-shell .drawer { max-height: 78%; }
 }

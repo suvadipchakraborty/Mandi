@@ -37,6 +37,12 @@ Google Sheet CSV directly in the browser.
    multi-horizon badges, geo comparison, and the thali cost index — is
    computed client-side in `js/data.js` from whatever rows were loaded.
 
+## Live URL
+
+The app is currently hosted at **https://mandi.suvadipchakraborty.workers.dev/**
+(Cloudflare Workers static assets). All absolute URLs in `index.html`
+already point here.
+
 ## Deploying to Cloudflare Pages (GitHub upload)
 
 1. Create a new GitHub repository (public or private).
@@ -53,17 +59,16 @@ Google Sheet CSV directly in the browser.
 ## Link preview (WhatsApp, Twitter, etc.)
 
 `index.html` already has Open Graph and Twitter Card meta tags pointing at
-`assets/og-image.png`. Once you know your live URL, open `index.html` and
-replace every occurrence of:
+`assets/og-image.png`, set to the live URL:
 
 ```
-https://mandi-nibs.pages.dev/
+https://mandi.suvadipchakraborty.workers.dev/
 ```
 
-with your actual Cloudflare Pages URL (or custom domain). WhatsApp and
-other apps need the **absolute** URL to fetch the preview image, so a
-relative path won't work here. If you attach a custom domain later, update
-these again.
+WhatsApp and other apps need the **absolute** URL to fetch the preview
+image, so a relative path won't work here. If you ever move the app to a
+different domain, update every occurrence of the URL above in `index.html`
+(`og:image`, `og:url`, `twitter:image`, `canonical`) to match.
 
 ## Updating the data source
 

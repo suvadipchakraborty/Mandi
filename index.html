@@ -10,19 +10,19 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Mandi Nibs — Daily Produce Price Index">
 <meta property="og:description" content="Today's mandi vegetable and fruit prices across Indian cities, with best-deal picks and a smart shopping list.">
-<meta property="og:image" content="https://mandi-nibs.pages.dev/assets/og-image.png">
-<meta property="og:url" content="https://mandi-nibs.pages.dev/">
+<meta property="og:image" content="https://mandi.suvadipchakraborty.workers.dev/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://mandi.suvadipchakraborty.workers.dev/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mandi Nibs — Daily Produce Price Index">
 <meta name="twitter:description" content="Today's mandi vegetable and fruit prices, best deals, and a smart shopping list.">
-<meta name="twitter:image" content="https://mandi-nibs.pages.dev/assets/og-image.png">
-<!--
-  NOTE: replace mandi-nibs.pages.dev above with your actual Cloudflare
-  Pages domain (or custom domain) once deployed, so WhatsApp/Twitter/etc.
-  pull the right preview image. See README.md → "Link preview" section.
--->
+<meta name="twitter:image" content="https://mandi.suvadipchakraborty.workers.dev/assets/og-image.png">
+<link rel="canonical" href="https://mandi.suvadipchakraborty.workers.dev/">
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧺</text></svg>">
+<meta name="theme-color" content="#C98A0A" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14140F" media="(prefers-color-scheme: dark)">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,10 +33,10 @@
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-
+<div class="app-shell">
 <header class="app-header">
   <div class="app-header-row">
-    <div class="brand"><span data-t="brandName">Mandi Nibs</span><span class="brand-dot">•</span></div>
+    <div class="brand"><span class="brand-icon">🧺</span><span class="brand-name">Mandi Nibs</span><span class="brand-dot">•</span></div>
     <div class="header-controls">
       <button class="icon-btn" id="langToggle" title="Language">हिं</button>
       <button class="icon-btn" id="themeToggle" title="Theme">🌙</button>
@@ -54,7 +54,9 @@
 
   <!-- ===================== HOME VIEW ===================== -->
   <section id="view-home" class="view active">
+    <div class="value-intro" data-t="valueIntro">Know today's mandi prices before you step out — spot the best deals, dodge overpriced buys, and build a shopping list in seconds.</div>
     <div id="heroCard" class="hero"></div>
+    <button class="essentials-btn" id="addEssentialsBtn">🧺 <span data-t="addEssentials">Add today's essentials to basket</span></button>
 
     <div class="section">
       <div class="section-head">
@@ -78,6 +80,17 @@
     <div class="section">
       <div class="section-head">
         <span class="section-title" data-t="allProduce">All Produce</span>
+        <select class="pill-select sort-select" id="sortSelect">
+          <option value="essential" data-t="sortEssential">Sort: Essentials first</option>
+          <option value="name" data-t="sortName">Sort: Name A–Z</option>
+          <option value="priceLow" data-t="sortPriceLow">Sort: Price low–high</option>
+          <option value="priceHigh" data-t="sortPriceHigh">Sort: Price high–low</option>
+          <option value="dealFirst" data-t="sortDeal">Sort: Best deals first</option>
+        </select>
+      </div>
+      <div class="search-row">
+        <span class="search-icon">🔎</span>
+        <input type="search" id="produceSearch" class="search-input" data-t-ph="searchPlaceholder" placeholder="Search vegetables, fruits, grains…">
       </div>
       <div class="produce-list" id="produceList"></div>
     </div>
@@ -176,6 +189,7 @@
     </div>
   </div>
 </div>
+</div><!-- /.app-shell -->
 
 <script src="js/data.js"></script>
 <script src="js/shoppingList.js"></script>

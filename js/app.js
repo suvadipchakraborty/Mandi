@@ -19,7 +19,9 @@ const state = {
   allDates: [],
   latestDate: null,
   analytics: null,
-  dataSource: "live"
+  dataSource: "live",
+  search: "",
+  sortBy: "essential"
 };
 
 const T = {
@@ -54,7 +56,18 @@ const T = {
     feedback: "Feedback / Report a Mandi Price",
     liveData: "Live mandi data",
     sampleData: "Showing sample data — live feed unavailable right now",
-    allCities: "All Cities"
+    allCities: "All Cities",
+    valueIntro: "Know today's mandi prices before you step out — spot the best deals, dodge overpriced buys, and build a shopping list in seconds.",
+    addEssentials: "Add today's essentials to basket",
+    essentialsAdded: "Added onion, potato, tomato, wheat, rice & chana to your basket",
+    searchPlaceholder: "Search vegetables, fruits, grains…",
+    noResults: "No produce matches your search.",
+    sortEssential: "Sort: Essentials first",
+    sortName: "Sort: Name A–Z",
+    sortPriceLow: "Sort: Price low–high",
+    sortPriceHigh: "Sort: Price high–low",
+    sortDeal: "Sort: Best deals first",
+    horiz1W: "1W", horiz1M: "1M", horiz1Y: "1Y"
   },
   hi: {
     tagline: "बाज़ार जाने से पहले आज के मंडी भाव",
@@ -87,7 +100,18 @@ const T = {
     feedback: "प्रतिक्रिया / मंडी भाव रिपोर्ट करें",
     liveData: "लाइव मंडी डेटा",
     sampleData: "नमूना डेटा दिखाया जा रहा है — लाइव फ़ीड अभी उपलब्ध नहीं है",
-    allCities: "सभी शहर"
+    allCities: "सभी शहर",
+    valueIntro: "बाज़ार जाने से पहले आज के मंडी भाव जानें — सबसे सस्ता सौदा ढूंढें, महंगे भाव से बचें, और सेकंडों में खरीदारी सूची बनाएं।",
+    addEssentials: "आज की ज़रूरी चीज़ें टोकरी में जोड़ें",
+    essentialsAdded: "प्याज़, आलू, टमाटर, गेहूं, चावल और चना टोकरी में जोड़ दिए गए",
+    searchPlaceholder: "सब्ज़ी, फल, अनाज खोजें…",
+    noResults: "आपकी खोज से कोई उत्पाद नहीं मिला।",
+    sortEssential: "क्रम: ज़रूरी चीज़ें पहले",
+    sortName: "क्रम: नाम A–Z",
+    sortPriceLow: "क्रम: कम से ज़्यादा दाम",
+    sortPriceHigh: "क्रम: ज़्यादा से कम दाम",
+    sortDeal: "क्रम: सबसे सस्ता पहले",
+    horiz1W: "1सप्ताह", horiz1M: "1माह", horiz1Y: "1वर्ष"
   }
 };
 function t(key) { return (T[state.lang] && T[state.lang][key]) || T.en[key] || key; }
@@ -171,6 +195,29 @@ function bindGlobalControls() {
     buildSelectors();
     renderAll();
   });
+
+  document.getElementById("produceSearch").addEventListener("input", e => {
+    state.search = e.target.value.trim().toLowerCase();
+    renderProduceList();
+  });
+
+  document.getElementById("sortSelect").addEventListener("change", e => {
+    state.sortBy = e.target.value;
+    renderProduceList();
+  });
+
+  document.getElementById("addEssentialsBtn").addEventListener("click", () => {
+    if (!state.analytics) return;
+    MandiData.ESSENTIALS.forEach(commodity => {
+      const item = state.analytics.items.find(it => it.commodity === commodity);
+      if (item) ShoppingList.add(item);
+    });
+    renderBasketFab();
+    const btn = document.getElementById("addEssentialsBtn");
+    const orig = btn.innerHTML;
+    btn.innerHTML = "✓ " + t("essentialsAdded");
+    setTimeout(() => { btn.innerHTML = orig; }, 1800);
+  });
 }
 
 function applyTheme() {
@@ -180,6 +227,7 @@ function applyTheme() {
 function applyLang() {
   document.getElementById("langToggle").textContent = state.lang === "en" ? "हिं" : "EN";
   document.querySelectorAll("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-t-ph]").forEach(el => { el.placeholder = t(el.dataset.tPh); });
 }
 
 function setupFeedbackLink() {
@@ -342,13 +390,42 @@ function renderProduceList() {
   const list = document.getElementById("produceList");
   if (!a) { list.innerHTML = ""; return; }
 
-  const essentials = a.items.filter(it => MandiData.ESSENTIALS.includes(it.commodity));
-  const rest = a.items.filter(it => !MandiData.ESSENTIALS.includes(it.commodity))
-    .sort((x, y) => x.name.localeCompare(y.name));
-  const ordered = [...essentials, ...rest];
+  let items = a.items;
+  if (state.search) {
+    items = items.filter(it =>
+      it.name.toLowerCase().includes(state.search) ||
+      (it.hindi && it.hindi.includes(state.search))
+    );
+  }
 
-  list.innerHTML = ordered.map(rowHtml).join("");
+  let ordered;
+  if (state.sortBy === "essential") {
+    const essentials = items.filter(it => MandiData.ESSENTIALS.includes(it.commodity));
+    const rest = items.filter(it => !MandiData.ESSENTIALS.includes(it.commodity))
+      .sort((x, y) => x.name.localeCompare(y.name));
+    ordered = [...essentials, ...rest];
+  } else if (state.sortBy === "name") {
+    ordered = [...items].sort((x, y) => x.name.localeCompare(y.name));
+  } else if (state.sortBy === "priceLow") {
+    ordered = [...items].sort((x, y) => x.price - y.price);
+  } else if (state.sortBy === "priceHigh") {
+    ordered = [...items].sort((x, y) => y.price - x.price);
+  } else if (state.sortBy === "dealFirst") {
+    ordered = [...items].sort((x, y) => (x.vsWeek ?? 0) - (y.vsWeek ?? 0));
+  } else {
+    ordered = items;
+  }
+
+  list.innerHTML = ordered.length
+    ? ordered.map(rowHtml).join("")
+    : `<div class="empty-state" style="padding:24px"><div class="big">🔎</div><p>${t("noResults")}</p></div>`;
   bindAddButtons();
+}
+
+function horizonSpan(v) {
+  if (v == null) return "—";
+  const cls = v > 0.5 ? "up" : v < -0.5 ? "down" : "";
+  return `<b class="${cls}">${fmtChange(v)}</b>`;
 }
 
 function rowHtml(item) {
@@ -359,6 +436,7 @@ function rowHtml(item) {
         <div class="rname">${item.name}</div>
         ${hindiLine}
         <div style="margin-top:4px"><span class="tag ${item.valueTag}">${t(item.valueTag)}</span></div>
+        <div class="rhorizons">${t("horiz1W")} ${horizonSpan(item.vsWeek)} · ${t("horiz1M")} ${horizonSpan(item.vsMonthSameDay)} · ${t("horiz1Y")} ${horizonSpan(item.vsYear)}</div>
       </div>
       <div style="text-align:right">
         <div class="rprice">₹${Math.round(item.price)}</div>
