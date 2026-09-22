@@ -351,9 +351,50 @@ function compositeTrend(rows, allDates, latestDate, filters, days = 7) {
   return points.map(p => ({ date: p.date, index: base ? (p.avg / base) * 100 : 100 }));
 }
 
+/**
+ * Per-item price trend for the tap-to-expand chart on a produce card/row.
+ * Matches the three data horizons the feed actually carries:
+ *  - week:   one price per day for the trailing ~7 daily readings.
+ *  - months: one price per month (same day-of-month) for the trailing 12
+ *            months, resolved to the nearest earlier available date.
+ *  - year:   a single same-day-last-year vs. today comparison — this is
+ *            genuinely a 2-point series because that's the only reading
+ *            the feed carries that far back.
+ */
+function itemTrend(rows, allDates, latestDate, commodity, filters = {}) {
+  const priceOn = (date) => {
+    const dayRows = filterRows(rows, { ...filters, date }).filter(r => r.commodity === commodity);
+    return average(dayRows.map(r => r.modal));
+  };
+
+  const weekDates = allDates.filter(d => d <= latestDate && d >= addDaysIso(latestDate, -7)).sort();
+  const week = weekDates
+    .map(d => ({ date: d, price: priceOn(d) }))
+    .filter(p => p.price != null);
+
+  const seenMonthDates = new Set();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const anchor = addMonthsIso(latestDate, -i);
+    const resolved = nearestAvailable(allDates, anchor, latestDate);
+    if (seenMonthDates.has(resolved)) continue;
+    seenMonthDates.add(resolved);
+    const price = priceOn(resolved);
+    if (price != null) months.push({ date: resolved, price });
+  }
+
+  const lastYearDate = nearestAvailable(allDates, addYearsIso(latestDate, -1), latestDate);
+  const year = [
+    { date: lastYearDate, price: priceOn(lastYearDate), kind: "lastYear" },
+    { date: latestDate, price: priceOn(latestDate), kind: "today" }
+  ].filter(p => p.price != null);
+
+  return { week, months, year };
+}
+
 window.MandiData = {
   CITY_LIST, CATEGORY_LIST, ESSENTIALS, THALI_RECIPE,
   loadRows, uniqueDatesSorted, filterRows, buildAnalytics,
-  topGainersLosers, geoComparison, thaliCost, compositeTrend,
+  topGainersLosers, geoComparison, thaliCost, compositeTrend, itemTrend,
   displayName, hindiName, pctChange
 };
