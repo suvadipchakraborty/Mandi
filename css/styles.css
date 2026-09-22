@@ -576,6 +576,17 @@ select.pill-select {
 }
 .export-btn.whatsapp { background: #25D366; color: white; border-color: #25D366; }
 
+/* ---------------- Item trend chart (inside drawer) ---------------- */
+.trend-chart-wrap {
+  position: relative;
+  height: 220px;
+  margin-top: 14px;
+}
+.trend-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+.trend-caption { margin-top: 10px; font-size: 13px; }
+.trend-caption-sub { color: var(--muted); }
+.produce-row[data-commodity], .produce-card[data-commodity] { cursor: pointer; }
+
 /* ---------------- Tabs (bottom nav) ---------------- */
 .tab-bar {
   position: fixed;
