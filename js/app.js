@@ -67,7 +67,14 @@ const T = {
     sortPriceLow: "Sort: Price low–high",
     sortPriceHigh: "Sort: Price high–low",
     sortDeal: "Sort: Best deals first",
-    horiz1W: "1W", horiz1M: "1M", horiz1Y: "1Y"
+    horiz1W: "1W", horiz1M: "1M", horiz1Y: "1Y",
+    trend7Day: "7-Day", trend12Month: "12-Month", trendPastYear: "Past Year",
+    trendCaptionWeek: "change over the past week",
+    trendCaptionMonths: "change over the past 12 months",
+    trendCaptionYear: "vs. this day last year",
+    trendYearAgo: "Last year", trendToday: "Today",
+    noTrendData: "Not enough history for this range yet.",
+    tapForTrend: "Tap for price trend"
   },
   hi: {
     tagline: "बाज़ार जाने से पहले आज के मंडी भाव",
@@ -111,7 +118,14 @@ const T = {
     sortPriceLow: "क्रम: कम से ज़्यादा दाम",
     sortPriceHigh: "क्रम: ज़्यादा से कम दाम",
     sortDeal: "क्रम: सबसे सस्ता पहले",
-    horiz1W: "1सप्ताह", horiz1M: "1माह", horiz1Y: "1वर्ष"
+    horiz1W: "1सप्ताह", horiz1M: "1माह", horiz1Y: "1वर्ष",
+    trend7Day: "7-दिन", trend12Month: "12-माह", trendPastYear: "पिछला वर्ष",
+    trendCaptionWeek: "पिछले सप्ताह में बदलाव",
+    trendCaptionMonths: "पिछले 12 महीनों में बदलाव",
+    trendCaptionYear: "पिछले साल इसी दिन की तुलना में",
+    trendYearAgo: "पिछला साल", trendToday: "आज",
+    noTrendData: "इस अवधि के लिए पर्याप्त इतिहास उपलब्ध नहीं है।",
+    tapForTrend: "मूल्य रुझान के लिए टैप करें"
   }
 };
 function t(key) { return (T[state.lang] && T[state.lang][key]) || T.en[key] || key; }
@@ -125,6 +139,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindGlobalControls();
   bindTabs();
   bindDrawer();
+  bindTrendModal();
   setupFeedbackLink();
 
   const { rows, source, stale } = await MandiData.loadRows();
@@ -374,7 +389,7 @@ function cardHtml(item) {
   const arrow = change > 0 ? "+" : "";
   const hindiLine = state.lang === "hi" && item.hindi ? `<div class="phindi">${item.hindi}</div>` : "";
   return `
-    <div class="produce-card">
+    <div class="produce-card" data-commodity="${escAttr(item.commodity)}" title="${t("tapForTrend")}">
       <div class="pname">${item.name}</div>
       ${hindiLine}
       <div class="pprice">₹${Math.round(item.price)}</div>
@@ -431,7 +446,7 @@ function horizonSpan(v) {
 function rowHtml(item) {
   const hindiLine = state.lang === "hi" && item.hindi ? `<div class="rhindi">${item.hindi}</div>` : "";
   return `
-    <div class="produce-row">
+    <div class="produce-row" data-commodity="${escAttr(item.commodity)}" title="${t("tapForTrend")}">
       <div class="rinfo">
         <div class="rname">${item.name}</div>
         ${hindiLine}
@@ -440,7 +455,7 @@ function rowHtml(item) {
       </div>
       <div style="text-align:right">
         <div class="rprice">₹${Math.round(item.price)}</div>
-        <div style="font-size:11px;color:var(--muted)">${fmtChange(item.vsYesterday)} ${t("vsYesterday")}</div>
+        <div style="font-size:11px;color:var(--muted)">📈 ${fmtChange(item.vsYesterday)} ${t("vsYesterday")}</div>
       </div>
       <button class="row-add-btn" data-add="${escAttr(item.commodity)}">+</button>
     </div>`;
@@ -577,6 +592,7 @@ function bindDrawer() {
   });
 
   function openDrawer() {
+    if (window.closeMandiTrend) window.closeMandiTrend();
     renderDrawerContents();
     backdrop.classList.add("open");
     drawer.classList.add("open");
@@ -637,5 +653,174 @@ function renderDrawerContents() {
   }));
 }
 
+/* --------------------------- Item trend modal --------------------------- */
+
+let trendChartInstance = null;
+const trendState = { commodity: null, range: "week", data: null };
+
+function bindTrendModal() {
+  const backdrop = document.getElementById("trendBackdrop");
+
+  document.getElementById("trendCloseBtn").addEventListener("click", closeTrendModal);
+  backdrop.addEventListener("click", closeTrendModal);
+
+  document.getElementById("trendTabs").addEventListener("click", e => {
+    const btn = e.target.closest(".horizon-tab");
+    if (!btn) return;
+    trendState.range = btn.dataset.range;
+    document.querySelectorAll("#trendTabs .horizon-tab").forEach(b => b.classList.toggle("active", b === btn));
+    renderTrendChart();
+  });
+
+  // Delegated: tapping any produce card/row (but not its add button) opens
+  // the trend modal for that item. Bound once on document since rows and
+  // cards are re-rendered often.
+  document.addEventListener("click", e => {
+    if (e.target.closest("[data-add]")) return;
+    const el = e.target.closest(".produce-row[data-commodity], .produce-card[data-commodity]");
+    if (!el) return;
+    openTrendModal(el.dataset.commodity);
+  });
+
+  window.closeMandiTrend = closeTrendModal;
+}
+
+function openTrendModal(commodity) {
+  const a = state.analytics;
+  if (!a) return;
+  const item = a.items.find(it => it.commodity === commodity);
+  if (!item) return;
+
+  if (window.closeMandiDrawer) window.closeMandiDrawer();
+
+  trendState.commodity = commodity;
+  trendState.range = "week";
+  trendState.data = MandiData.itemTrend(state.rows, state.allDates, state.latestDate, commodity, {
+    city: state.city === "All Cities" ? null : state.city,
+    category: state.category
+  });
+
+  const hindiBit = state.lang === "hi" && item.hindi ? `${item.hindi} · ` : "";
+  document.getElementById("trendTitle").textContent = `${hindiBit}${item.name}`;
+  document.querySelectorAll("#trendTabs .horizon-tab").forEach(b => b.classList.toggle("active", b.dataset.range === "week"));
+  renderTrendChart();
+
+  document.getElementById("trendBackdrop").classList.add("open");
+  document.getElementById("trendDrawer").classList.add("open");
+}
+
+function closeTrendModal() {
+  document.getElementById("trendBackdrop").classList.remove("open");
+  document.getElementById("trendDrawer").classList.remove("open");
+}
+
+function renderTrendChart() {
+  const canvas = document.getElementById("trendChart");
+  const captionEl = document.getElementById("trendCaption");
+  if (!canvas || typeof Chart === "undefined" || !trendState.data) return;
+
+  const range = trendState.range;
+  const points = range === "week" ? trendState.data.week
+    : range === "months" ? trendState.data.months
+    : trendState.data.year;
+
+  if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+
+  if (!points || points.length === 0) {
+    canvas.style.display = "none";
+    captionEl.textContent = t("noTrendData");
+    return;
+  }
+  canvas.style.display = "block";
+
+  const styles = getComputedStyle(document.documentElement);
+  const upColor = styles.getPropertyValue("--sindoor").trim();
+  const downColor = styles.getPropertyValue("--leaf").trim();
+  const mutedColor = styles.getPropertyValue("--muted").trim();
+  const lineColor = styles.getPropertyValue("--line").trim();
+
+  const base = points[0].price;
+  const colors = points.map(p => (p.price >= base ? upColor : downColor));
+  const locale = state.lang === "hi" ? "hi-IN" : "en-IN";
+
+  const labelFor = (p) => {
+    if (range === "week") return new Date(p.date + "T00:00:00").toLocaleDateString(locale, { weekday: "short" });
+    if (range === "months") return new Date(p.date + "T00:00:00").toLocaleDateString(locale, { month: "short" });
+    return p.kind === "lastYear" ? t("trendYearAgo") : t("trendToday");
+  };
+
+  trendChartInstance = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: points.map(labelFor),
+      datasets: [{
+        data: points.map(p => Math.round(p.price)),
+        backgroundColor: colors,
+        borderRadius: 6,
+        maxBarThickness: range === "year" ? 72 : 26
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => "₹" + ctx.parsed.y } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: mutedColor, font: { size: 10.5 } } },
+        y: { grid: { color: lineColor }, ticks: { color: mutedColor, font: { size: 10.5 } } }
+      }
+    }
+  });
+
+  const first = points[0].price, last = points[points.length - 1].price;
+  const pct = MandiData.pctChange(last, first);
+  if (pct == null) {
+    captionEl.textContent = "";
+  } else {
+    const arrow = pct > 0.5 ? "▲" : pct < -0.5 ? "▼" : "•";
+    const cls = pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat";
+    const captionKey = range === "week" ? "trendCaptionWeek" : range === "months" ? "trendCaptionMonths" : "trendCaptionYear";
+    captionEl.innerHTML = `<span class="hero-delta ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span> <span class="trend-caption-sub">${t(captionKey)}</span>`;
+  }
+}
+
 /* Bind gainers/losers horizon tabs once DOM is present. */
 document.addEventListener("DOMContentLoaded", bindGlHorizonTabs);
+
+/* ------------------------- PWA: install + offline ------------------------ */
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(err => {
+      console.warn("Service worker registration failed:", err.message);
+    });
+  });
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById("installBtn");
+  if (btn) btn.style.display = "flex";
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("installBtn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    btn.style.display = "none";
+  });
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById("installBtn");
+  if (btn) btn.style.display = "none";
+});
