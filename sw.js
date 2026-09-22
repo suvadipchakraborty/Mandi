@@ -13,7 +13,7 @@
    visitors pick up the update instead of a stale cached copy.
    ============================================================ */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `mandi-nibs-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
