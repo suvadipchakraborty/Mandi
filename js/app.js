@@ -714,10 +714,10 @@ function closeTrendModal() {
   document.getElementById("trendDrawer").classList.remove("open");
 }
 
-function renderTrendChart() {
+function renderTrendChart(retryCount) {
   const canvas = document.getElementById("trendChart");
   const captionEl = document.getElementById("trendCaption");
-  if (!canvas || typeof Chart === "undefined" || !trendState.data) return;
+  if (!canvas || !trendState.data) return;
 
   const range = trendState.range;
   const points = range === "week" ? trendState.data.week
@@ -731,6 +731,18 @@ function renderTrendChart() {
     captionEl.textContent = t("noTrendData");
     return;
   }
+
+  // Chart.js loads from a CDN. If it's slow (or blocked by the network)
+  // by the time this fires, retry briefly, then fall back to drawing the
+  // bars ourselves rather than leaving the drawer blank.
+  if (typeof Chart === "undefined") {
+    const tries = retryCount || 0;
+    if (tries < 10) {
+      setTimeout(() => renderTrendChart(tries + 1), 200);
+      return;
+    }
+  }
+
   canvas.style.display = "block";
 
   const styles = getComputedStyle(document.documentElement);
@@ -748,31 +760,45 @@ function renderTrendChart() {
     if (range === "months") return new Date(p.date + "T00:00:00").toLocaleDateString(locale, { month: "short" });
     return p.kind === "lastYear" ? t("trendYearAgo") : t("trendToday");
   };
+  const labels = points.map(labelFor);
+  const values = points.map(p => Math.round(p.price));
 
-  trendChartInstance = new Chart(canvas, {
-    type: "bar",
-    data: {
-      labels: points.map(labelFor),
-      datasets: [{
-        data: points.map(p => Math.round(p.price)),
-        backgroundColor: colors,
-        borderRadius: 6,
-        maxBarThickness: range === "year" ? 72 : 26
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => "₹" + ctx.parsed.y } }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: mutedColor, font: { size: 10.5 } } },
-        y: { grid: { color: lineColor }, ticks: { color: mutedColor, font: { size: 10.5 } } }
-      }
+  let rendered = false;
+  if (typeof Chart !== "undefined") {
+    try {
+      trendChartInstance = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderRadius: 6,
+            maxBarThickness: range === "year" ? 72 : 26
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => "₹" + ctx.parsed.y } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: mutedColor, font: { size: 10.5 } } },
+            y: { grid: { color: lineColor }, ticks: { color: mutedColor, font: { size: 10.5 } } }
+          }
+        }
+      });
+      rendered = true;
+    } catch (err) {
+      console.warn("Chart.js render failed, drawing fallback bars:", err);
     }
-  });
+  }
+
+  if (!rendered) {
+    drawFallbackBarChart(canvas, labels, values, colors, mutedColor);
+  }
 
   const first = points[0].price, last = points[points.length - 1].price;
   const pct = MandiData.pctChange(last, first);
@@ -784,6 +810,53 @@ function renderTrendChart() {
     const captionKey = range === "week" ? "trendCaptionWeek" : range === "months" ? "trendCaptionMonths" : "trendCaptionYear";
     captionEl.innerHTML = `<span class="hero-delta ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span> <span class="trend-caption-sub">${t(captionKey)}</span>`;
   }
+}
+
+// Plain <canvas> bar chart used only if Chart.js hasn't loaded (e.g. the
+// CDN is blocked on the visitor's network). Keeps the trend visible
+// instead of leaving an empty drawer.
+function drawFallbackBarChart(canvas, labels, values, colors, mutedColor) {
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth || 300;
+  const h = wrap.clientHeight || 220;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const padTop = 10, padBottom = 22, gap = 10;
+  const chartH = h - padTop - padBottom;
+  const max = Math.max(...values, 1);
+  const n = values.length;
+  const barW = Math.max(6, (w - gap * (n + 1)) / n);
+
+  ctx.textAlign = "center";
+  ctx.font = "10.5px sans-serif";
+
+  values.forEach((v, i) => {
+    const barH = max ? (v / max) * chartH : 0;
+    const x = gap + i * (barW + gap);
+    const y = padTop + (chartH - barH);
+    const radius = Math.min(6, barW / 2, Math.max(barH, 1) / 2);
+
+    ctx.fillStyle = colors[i] || mutedColor || "#999";
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + barW, y, x + barW, y + barH, radius);
+    ctx.arcTo(x + barW, y + barH, x, y + barH, radius);
+    ctx.arcTo(x, y + barH, x, y, radius);
+    ctx.arcTo(x, y, x + barW, y, radius);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = mutedColor || "#888";
+    ctx.fillText(labels[i] || "", x + barW / 2, h - 6);
+  });
 }
 
 /* Bind gainers/losers horizon tabs once DOM is present. */

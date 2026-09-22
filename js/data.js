@@ -351,15 +351,48 @@ function compositeTrend(rows, allDates, latestDate, filters, days = 7) {
   return points.map(p => ({ date: p.date, index: base ? (p.avg / base) * 100 : 100 }));
 }
 
+// All dates that actually carry a reading for this specific commodity
+// (after city/category filters). Real mandi feeds are patchy per-item —
+// a given vegetable may simply not be reported on a given day — so trend
+// lookups need to search among dates the commodity itself has, not just
+// dates the dataset has data for in general.
+function commodityDateSet(rows, commodity, filters) {
+  const set = new Set();
+  for (const r of rows) {
+    if (r.commodity !== commodity) continue;
+    if (filters.city && filters.city !== "All Cities" && r.city !== filters.city) continue;
+    if (filters.category && filters.category !== "All" && r.category !== filters.category) continue;
+    set.add(r.date);
+  }
+  return set;
+}
+
+// Closest date to `anchorIso` (on or before `latestDate`) that this
+// commodity has a reading for. Falls back across whatever gaps exist in
+// the feed — a day or two off, a missed week, a skipped month — rather
+// than requiring an exact match, so the chart always uses the nearest
+// real reading instead of coming back empty.
+function nearestCommodityDate(commodityDates, anchorIso, latestDate) {
+  if (commodityDates.size === 0) return null;
+  if (commodityDates.has(anchorIso)) return anchorIso;
+  const anchorMs = new Date(anchorIso + "T00:00:00").getTime();
+  let best = null, bestDiff = Infinity;
+  commodityDates.forEach(d => {
+    if (d > latestDate) return; // never pull from the future
+    const diff = Math.abs(new Date(d + "T00:00:00").getTime() - anchorMs);
+    if (diff < bestDiff) { bestDiff = diff; best = d; }
+  });
+  return best;
+}
+
 /**
  * Per-item price trend for the tap-to-expand chart on a produce card/row.
- * Matches the three data horizons the feed actually carries:
- *  - week:   one price per day for the trailing ~7 daily readings.
- *  - months: one price per month (same day-of-month) for the trailing 12
- *            months, resolved to the nearest earlier available date.
- *  - year:   a single same-day-last-year vs. today comparison — this is
- *            genuinely a 2-point series because that's the only reading
- *            the feed carries that far back.
+ * Three data horizons, each resolved to the nearest date the commodity
+ * actually has a reading for (feed dates rarely line up exactly):
+ *  - week:   up to 7 daily readings across the trailing week.
+ *  - months: one reading per month (same day-of-month) across the
+ *            trailing 12 months.
+ *  - year:   a same-day-last-year vs. today comparison.
  */
 function itemTrend(rows, allDates, latestDate, commodity, filters = {}) {
   const priceOn = (date) => {
@@ -367,27 +400,41 @@ function itemTrend(rows, allDates, latestDate, commodity, filters = {}) {
     return average(dayRows.map(r => r.modal));
   };
 
-  const weekDates = allDates.filter(d => d <= latestDate && d >= addDaysIso(latestDate, -7)).sort();
-  const week = weekDates
-    .map(d => ({ date: d, price: priceOn(d) }))
-    .filter(p => p.price != null);
+  const commodityDates = commodityDateSet(rows, commodity, filters);
+
+  const seenWeekDates = new Set();
+  const week = [];
+  for (let i = 6; i >= 0; i--) {
+    const anchor = addDaysIso(latestDate, -i);
+    const resolved = nearestCommodityDate(commodityDates, anchor, latestDate);
+    if (!resolved || seenWeekDates.has(resolved)) continue;
+    seenWeekDates.add(resolved);
+    const price = priceOn(resolved);
+    if (price != null) week.push({ date: resolved, price });
+  }
 
   const seenMonthDates = new Set();
   const months = [];
   for (let i = 11; i >= 0; i--) {
     const anchor = addMonthsIso(latestDate, -i);
-    const resolved = nearestAvailable(allDates, anchor, latestDate);
-    if (seenMonthDates.has(resolved)) continue;
+    const resolved = nearestCommodityDate(commodityDates, anchor, latestDate);
+    if (!resolved || seenMonthDates.has(resolved)) continue;
     seenMonthDates.add(resolved);
     const price = priceOn(resolved);
     if (price != null) months.push({ date: resolved, price });
   }
 
-  const lastYearDate = nearestAvailable(allDates, addYearsIso(latestDate, -1), latestDate);
-  const year = [
-    { date: lastYearDate, price: priceOn(lastYearDate), kind: "lastYear" },
-    { date: latestDate, price: priceOn(latestDate), kind: "today" }
-  ].filter(p => p.price != null);
+  const lastYearDate = nearestCommodityDate(commodityDates, addYearsIso(latestDate, -1), latestDate);
+  const todayDate = nearestCommodityDate(commodityDates, latestDate, latestDate);
+  const year = [];
+  if (lastYearDate) {
+    const p = priceOn(lastYearDate);
+    if (p != null) year.push({ date: lastYearDate, price: p, kind: "lastYear" });
+  }
+  if (todayDate) {
+    const p = priceOn(todayDate);
+    if (p != null) year.push({ date: todayDate, price: p, kind: "today" });
+  }
 
   return { week, months, year };
 }
